@@ -9,6 +9,9 @@ class InfoCard extends StatelessWidget {
   final String? footer;
   final Color? footerColor;
   final VoidCallback? onTap;
+  final Widget? action;
+  final Widget? badge;
+  final IconData? leadingIcon;
 
   const InfoCard({
     super.key,
@@ -17,6 +20,9 @@ class InfoCard extends StatelessWidget {
     this.footer,
     this.footerColor,
     this.onTap,
+    this.action,
+    this.badge,
+    this.leadingIcon,
   });
 
   @override
@@ -28,7 +34,20 @@ class InfoCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (leadingIcon != null) ...[
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(leadingIcon, color: AppColors.primary, size: 22),
+                ),
+                const SizedBox(width: 12),
+              ],
               Expanded(
                 child: Text(
                   title,
@@ -39,6 +58,10 @@ class InfoCard extends StatelessWidget {
                   ),
                 ),
               ),
+              if (badge != null) ...[
+                const SizedBox(width: 12),
+                badge!,
+              ],
               if (onTap != null)
                 const Icon(
                   Icons.chevron_right,
@@ -63,6 +86,10 @@ class InfoCard extends StatelessWidget {
                 color: footerColor ?? AppColors.textSecondary,
               ),
             ),
+          ],
+          if (action != null) ...[
+            const SizedBox(height: 12),
+            action!,
           ],
         ],
       ),

@@ -1,0 +1,200 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(ownerId) {
+      return signedIn() && request.auth.uid == ownerId;
+    }
+
+    function isAdmin() {
+      return signedIn() &&
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid))
+          .data.tipoUsuario == 'admin';
+    }
+
+    function ownsReservationAfter(reservationId) {
+      return signedIn() &&
+        getAfter(/databases/$(database)/documents/reservas/$(reservationId))
+          .data.moradorId == request.auth.uid;
+    }
+
+    match /usuarios/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+
+      allow create: if isOwner(userId) &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.tipoUsuario == 'morador';
+
+      allow update: if isAdmin() ||
+        (isOwner(userId) &&
+          request.resource.data.uid == resource.data.uid &&
+          request.resource.data.tipoUsuario == resource.data.tipoUsuario &&
+          request.resource.data.email == resource.data.email &&
+          request.resource.data.criadoEm == resource.data.criadoEm);
+
+      allow delete: if isAdmin();
+
+      match /fcmTokens/{tokenId} {
+        allow read, delete: if isOwner(userId);
+
+        allow create, update: if isOwner(userId) &&
+          request.resource.data.keys().hasOnly([
+            'token',
+            'plataforma',
+            'atualizadoEm'
+          ]) &&
+          request.resource.data.token is string &&
+          request.resource.data.token.size() > 20 &&
+          request.resource.data.token.size() <= 2048 &&
+          request.resource.data.plataforma is string;
+      }
+    }
+
+    match /avisos/{avisoId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /documentos/{documentoId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /solicitacoes_atendimento/{solicitacaoId} {
+      allow read: if isAdmin() ||
+        (signedIn() && resource.data.moradorId == request.auth.uid);
+
+      allow create: if signedIn() &&
+        request.resource.data.moradorId == request.auth.uid &&
+        request.resource.data.status == 'Em análise';
+
+      allow update, delete: if isAdmin();
+    }
+
+    match /reservas/{reservaId} {
+      allow read: if isAdmin() ||
+        (signedIn() && resource.data.moradorId == request.auth.uid);
+
+      allow create: if signedIn() &&
+        request.resource.data.moradorId == request.auth.uid &&
+        request.resource.data.status == 'Em análise';
+
+      allow update: if isAdmin() ||
+        (signedIn() &&
+          resource.data.moradorId == request.auth.uid &&
+          request.resource.data.moradorId == resource.data.moradorId &&
+          resource.data.status in ['Em análise', 'Aprovada'] &&
+          request.resource.data.status == 'Cancelada' &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status',
+            'canceladoEm',
+            'atualizadoEm'
+          ]));
+
+      allow delete: if isAdmin();
+    }
+
+    match /reservas_horarios/{slotId} {
+      allow read: if signedIn();
+
+      allow create, update: if isAdmin() ||
+        (ownsReservationAfter(request.resource.data.reservaId) &&
+          getAfter(
+            /databases/$(database)/documents/reservas/$(request.resource.data.reservaId)
+          ).data.status in ['Em análise', 'Aprovada']);
+
+      allow delete: if isAdmin() ||
+        (ownsReservationAfter(resource.data.reservaId) &&
+          getAfter(
+            /databases/$(database)/documents/reservas/$(resource.data.reservaId)
+          ).data.status == 'Cancelada');
+    }
+
+    match /areas_reserva/{areaId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /configuracoes_reservas/{configId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /encomendas/{encomendaId} {
+      allow read: if isAdmin() ||
+        (signedIn() && resource.data.moradorId == request.auth.uid);
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /acessos_visitantes/{acessoId} {
+      allow read: if isAdmin() ||
+        (signedIn() && resource.data.moradorId == request.auth.uid);
+
+      allow create, delete: if isAdmin();
+
+      allow update: if isAdmin() ||
+        (signedIn() &&
+          resource.data.moradorId == request.auth.uid &&
+          request.resource.data.moradorId == resource.data.moradorId &&
+          resource.data.status == 'Aguardando autorização' &&
+          (!('validoAte' in resource.data) ||
+            resource.data.validoAte > request.time) &&
+          request.resource.data.status in [
+            'Entrada autorizada',
+            'Entrada recusada'
+          ] &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status',
+            'atualizadoEm',
+            'autorizadoEm',
+            'recusadoEm',
+            'motivoRecusa'
+          ]));
+    }
+
+    match /notificacoes/{notificacaoId} {
+      allow read: if isAdmin() ||
+        (signedIn() && resource.data.destinatarioId == request.auth.uid);
+
+      allow create: if isAdmin() ||
+        (signedIn() &&
+          request.resource.data.keys().hasOnly([
+            'destinatarioId',
+            'remetenteId',
+            'titulo',
+            'mensagem',
+            'tipo',
+            'referenciaId',
+            'lida',
+            'criadoEm'
+          ]) &&
+          request.resource.data.remetenteId == request.auth.uid &&
+          request.resource.data.destinatarioId == 'administradores' &&
+          request.resource.data.titulo is string &&
+          request.resource.data.mensagem is string &&
+          request.resource.data.tipo is string &&
+          request.resource.data.lida == false &&
+          request.resource.data.criadoEm == request.time);
+
+      allow update: if isAdmin() ||
+        (signedIn() &&
+          resource.data.destinatarioId == request.auth.uid &&
+          request.resource.data.destinatarioId == resource.data.destinatarioId &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'lida',
+            'lidaEm'
+          ]) &&
+          request.resource.data.lida == true);
+
+      allow delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

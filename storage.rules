@@ -1,0 +1,30 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn() &&
+        firestore.get(
+          /databases/(default)/documents/usuarios/$(request.auth.uid)
+        ).data.tipoUsuario == 'admin';
+    }
+
+    match /documentos/{documentoId}/{arquivoId} {
+      allow read: if signedIn();
+
+      allow create, update: if isAdmin() &&
+        request.resource.size <= 10 * 1024 * 1024 &&
+        request.resource.contentType == 'application/pdf';
+
+      allow delete: if isAdmin();
+    }
+
+    match /{arquivo=**} {
+      allow read, write: if false;
+    }
+  }
+}

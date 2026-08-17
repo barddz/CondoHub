@@ -41,3 +41,15 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Local Flutter tooling state
+/.flutter
+/.flutter_tool_state
+
+# Local Firebase tooling state
+/.firebase/
+/firebase-debug.log
+/firebase-debug.*.log
+
+# APK copied locally for GitHub Releases (attach it to the release, not Git)
+/CondoHub-Android.apk

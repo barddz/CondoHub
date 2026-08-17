@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title description">
+  <title id="title">Ícone do CondoHub</title>
+  <desc id="description">Dois edifícios conectados em branco sobre fundo azul.</desc>
+  <rect width="512" height="512" rx="112" fill="#1E3A5F"/>
+  <circle cx="424" cy="84" r="164" fill="#274C77"/>
+  <rect x="112" y="184" width="124" height="216" rx="16" fill="#FFFFFF"/>
+  <rect x="276" y="112" width="124" height="288" rx="16" fill="#FFFFFF"/>
+  <rect x="220" y="252" width="72" height="48" fill="#FFFFFF"/>
+  <g fill="#1E3A5F">
+    <rect x="140" y="216" width="24" height="24" rx="4"/>
+    <rect x="184" y="216" width="24" height="24" rx="4"/>
+    <rect x="140" y="260" width="24" height="24" rx="4"/>
+    <rect x="184" y="260" width="24" height="24" rx="4"/>
+    <rect x="140" y="304" width="24" height="24" rx="4"/>
+    <rect x="184" y="304" width="24" height="24" rx="4"/>
+    <rect x="304" y="148" width="24" height="24" rx="4"/>
+    <rect x="348" y="148" width="24" height="24" rx="4"/>
+    <rect x="304" y="192" width="24" height="24" rx="4"/>
+    <rect x="348" y="192" width="24" height="24" rx="4"/>
+    <rect x="304" y="236" width="24" height="24" rx="4"/>
+    <rect x="348" y="236" width="24" height="24" rx="4"/>
+    <rect x="304" y="280" width="24" height="24" rx="4"/>
+    <rect x="348" y="280" width="24" height="24" rx="4"/>
+  </g>
+  <rect x="330" y="332" width="32" height="68" rx="6" fill="#60A5FA"/>
+</svg>
