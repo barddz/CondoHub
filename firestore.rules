@@ -16,10 +16,59 @@ service cloud.firestore {
           .data.tipoUsuario == 'admin';
     }
 
-    function ownsReservationAfter(reservationId) {
+    function canCreateOwnReservationSlot(reservationId) {
+      let reservation = getAfter(
+        /databases/$(database)/documents/reservas/$(reservationId)
+      );
+
       return signedIn() &&
-        getAfter(/databases/$(database)/documents/reservas/$(reservationId))
-          .data.moradorId == request.auth.uid;
+        existsAfter(
+          /databases/$(database)/documents/reservas/$(reservationId)
+        ) &&
+        request.resource.data.keys().hasAll([
+          'reservaId',
+          'areaId',
+          'area',
+          'dataChave',
+          'horario',
+          'status',
+          'atualizadoEm'
+        ]) &&
+        request.resource.data.keys().hasOnly([
+          'reservaId',
+          'areaId',
+          'area',
+          'dataChave',
+          'horario',
+          'status',
+          'atualizadoEm'
+        ]) &&
+        request.resource.data.reservaId is string &&
+        request.resource.data.areaId is string &&
+        request.resource.data.area is string &&
+        request.resource.data.dataChave is string &&
+        request.resource.data.horario is string &&
+        request.resource.data.status == 'Em análise' &&
+        request.resource.data.atualizadoEm == request.time &&
+        reservation.data.moradorId == request.auth.uid &&
+        reservation.data.status == 'Em análise' &&
+        request.resource.data.areaId == reservation.data.areaId &&
+        request.resource.data.area == reservation.data.area &&
+        request.resource.data.dataChave == reservation.data.dataChave &&
+        request.resource.data.horario == reservation.data.horario;
+    }
+
+    function canDeleteOwnCancelledReservationSlot(reservationId) {
+      let reservation = getAfter(
+        /databases/$(database)/documents/reservas/$(reservationId)
+      );
+
+      return signedIn() &&
+        existsAfter(
+          /databases/$(database)/documents/reservas/$(reservationId)
+        ) &&
+        reservation.data.moradorId == request.auth.uid &&
+        reservation.data.status == 'Cancelada';
     }
 
     match /usuarios/{userId} {
@@ -101,17 +150,17 @@ service cloud.firestore {
     match /reservas_horarios/{slotId} {
       allow read: if signedIn();
 
-      allow create, update: if isAdmin() ||
-        (ownsReservationAfter(request.resource.data.reservaId) &&
-          getAfter(
-            /databases/$(database)/documents/reservas/$(request.resource.data.reservaId)
-          ).data.status in ['Em análise', 'Aprovada']);
+      allow create: if isAdmin() ||
+        (request.resource.data.reservaId is string &&
+          canCreateOwnReservationSlot(request.resource.data.reservaId));
+
+      // Moradores criam um slot novo junto com a própria reserva, mas não
+      // podem substituir a ocupação existente de outra reserva.
+      allow update: if isAdmin();
 
       allow delete: if isAdmin() ||
-        (ownsReservationAfter(resource.data.reservaId) &&
-          getAfter(
-            /databases/$(database)/documents/reservas/$(resource.data.reservaId)
-          ).data.status == 'Cancelada');
+        (resource.data.reservaId is string &&
+          canDeleteOwnCancelledReservationSlot(resource.data.reservaId));
     }
 
     match /areas_reserva/{areaId} {

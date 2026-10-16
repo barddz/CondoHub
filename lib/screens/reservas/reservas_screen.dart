@@ -240,7 +240,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
     final chaveData = _formatarDataChave(data);
 
     final snapshot = await FirebaseFirestore.instance
-        .collection('reservas')
+        .collection('reservas_horarios')
         .where('dataChave', isEqualTo: chaveData)
         .get();
 
@@ -291,24 +291,6 @@ class _ReservasScreenState extends State<ReservasScreen> {
 
     final moradorNome = await _buscarNomeMorador(usuario);
 
-    final conflitosExistentes = await firestore
-        .collection('reservas')
-        .where('dataChave', isEqualTo: dataChave)
-        .get();
-
-    final horarioJaOcupado = conflitosExistentes.docs.any((doc) {
-      final dados = doc.data();
-      final status = dados['status'];
-      final mesmaArea = _reservaPertenceAArea(dados, areaAtual);
-      return mesmaArea &&
-          dados['horario'] == horario &&
-          (status == 'Em análise' || status == 'Aprovada');
-    });
-
-    if (horarioJaOcupado) {
-      throw const ReservaIndisponivelException();
-    }
-
     final reservaRef = firestore.collection('reservas').doc();
     final slotRef = firestore.collection('reservas_horarios').doc(
           reservationSlotId(
@@ -336,20 +318,7 @@ class _ReservasScreenState extends State<ReservasScreen> {
       final slotSnapshot = await transaction.get(slotRef);
 
       if (slotSnapshot.exists) {
-        final reservaExistenteId = slotSnapshot.data()?['reservaId'];
-
-        if (reservaExistenteId is String && reservaExistenteId.isNotEmpty) {
-          final reservaExistenteSnapshot = await transaction.get(
-            firestore.collection('reservas').doc(reservaExistenteId),
-          );
-          final statusExistente = reservaExistenteSnapshot.data()?['status'];
-
-          if (reservaExistenteSnapshot.exists &&
-              (statusExistente == 'Em análise' ||
-                  statusExistente == 'Aprovada')) {
-            throw const ReservaIndisponivelException();
-          }
-        }
+        throw const ReservaIndisponivelException();
       }
 
       transaction.set(reservaRef, dadosReserva);
