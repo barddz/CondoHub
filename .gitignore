@@ -52,4 +52,4 @@ app.*.map.json
 /firebase-debug.*.log
 
 # APK copied locally for GitHub Releases (attach it to the release, not Git)
-/CondoHub-Android.apk
+/CondoHub-Android*.apk
