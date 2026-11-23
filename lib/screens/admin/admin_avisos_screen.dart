@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/app_helpers.dart';
-import '../../core/in_app_notifications_repository.dart';
 import '../../widgets/base_screen.dart';
 import '../../widgets/admin_form_section.dart';
 import '../../widgets/info_card.dart';
@@ -74,8 +73,7 @@ class _AdminAvisosScreenState extends State<AdminAvisosScreen> {
     });
 
     try {
-      final avisoRef =
-          await FirebaseFirestore.instance.collection('avisos').add({
+      await FirebaseFirestore.instance.collection('avisos').add({
         'titulo': titulo,
         'mensagem': mensagem,
         'autorId': usuario.uid,
@@ -83,13 +81,6 @@ class _AdminAvisosScreenState extends State<AdminAvisosScreen> {
         'criadoEm': FieldValue.serverTimestamp(),
         'atualizadoEm': FieldValue.serverTimestamp(),
       });
-
-      await InAppNotificationsRepository.notificarTodosMoradores(
-        titulo: titulo,
-        mensagem: mensagem,
-        tipo: 'aviso',
-        referenciaId: avisoRef.id,
-      );
 
       tituloController.clear();
       mensagemController.clear();

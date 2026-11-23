@@ -14,6 +14,49 @@ const ERROS_TOKEN_INVALIDO = new Set([
   "messaging/registration-token-not-registered",
 ]);
 
+exports.distribuirAvisoAosMoradores = onDocumentCreated(
+    {
+      document: "avisos/{avisoId}",
+      region: REGIAO,
+      retry: false,
+    },
+    async (event) => {
+      const aviso = event.data?.data();
+      const avisoId = event.params.avisoId;
+
+      if (!aviso || !avisoId) {
+        logger.warn("Aviso sem dados; distribuição ignorada.", {avisoId});
+        return;
+      }
+
+      const firestore = getFirestore();
+      const moradores = await firestore
+          .collection("usuarios")
+          .where("tipoUsuario", "==", "morador")
+          .get();
+
+      await Promise.all(moradores.docs.map((moradorDoc) => (
+        firestore
+            .collection("notificacoes")
+            .doc(`${avisoId}_${moradorDoc.id}`)
+            .set({
+              destinatarioId: moradorDoc.id,
+              titulo: String(aviso.titulo || "Novo aviso"),
+              mensagem: String(aviso.mensagem || ""),
+              tipo: "aviso",
+              referenciaId: avisoId,
+              lida: false,
+              criadoEm: FieldValue.serverTimestamp(),
+            })
+      )));
+
+      logger.info("Aviso distribuído aos moradores.", {
+        avisoId,
+        destinatarios: moradores.size,
+      });
+    },
+);
+
 exports.enviarPushDeNotificacao = onDocumentCreated(
     {
       document: "notificacoes/{notificacaoId}",
